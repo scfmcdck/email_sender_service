@@ -18,9 +18,9 @@ import time
 import json
 from typing import List, Dict, Any, Optional
 
-import requests
-from urllib3.exceptions import InsecureRequestWarning
-import urllib3
+import requests # type: ignore
+from urllib3.exceptions import InsecureRequestWarning # type: ignore
+import urllib3 # type: ignore
 
 # ================== НАСТРОЙКИ ==================
 ALLURE_BASE_URL = "your-endpoint-url"  # без завершающего /

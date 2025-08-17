@@ -12,8 +12,8 @@
 import os
 import sys
 import csv
-import requests
-import urllib3
+import requests # type: ignore
+import urllib3 # type: ignore
 
 # Отключаем предупреждения о небезопасном соединении
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
