@@ -3,8 +3,6 @@
 ## email_sender 
 * сервис для отправки нотификаций по email.
 
-![image info](images/email_sender.png)
-
 ### Главные особенности email_sender
 
 Массовая отправка email
