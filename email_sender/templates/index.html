@@ -95,6 +95,119 @@
                             <li class="list-group-item">Удалено дублей: {{ summary.duplicates_removed }}</li>
                             <li class="list-group-item fw-bold">Всего писем отправлено: {{ summary.final_total }}</li>
                         </ul>
+
+                        <!-- Мониторинг успешности отправки -->
+                        {% if summary.monitoring %}
+                            <hr>
+                            <h5 class="mt-4">🔍 Мониторинг отправки</h5>
+                            
+                            <!-- Общая статистика -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="card border-success">
+                                        <div class="card-body text-center">
+                                            <h6 class="card-title text-success">
+                                                <i class="bi bi-check-circle-fill"></i> Успешно отправлено
+                                            </h6>
+                                            <h3 class="text-success">{{ summary.monitoring.total_sent }}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card border-danger">
+                                        <div class="card-body text-center">
+                                            <h6 class="card-title text-danger">
+                                                <i class="bi bi-x-circle-fill"></i> Ошибки отправки
+                                            </h6>
+                                            <h3 class="text-danger">{{ summary.monitoring.total_failed }}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Детальная информация об успешных отправках -->
+                            {% if summary.monitoring.successful %}
+                                <div class="mb-3">
+                                    <h6 class="text-success">
+                                        <i class="bi bi-check-circle"></i> Успешно отправленные письма
+                                    </h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-success">
+                                            <thead>
+                                                <tr>
+                                                    <th>Email</th>
+                                                    <th>Время отправки</th>
+                                                    <th>Статус</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for email in summary.monitoring.successful %}
+                                                <tr>
+                                                    <td>{{ email.email }}</td>
+                                                    <td>{{ email.timestamp }}</td>
+                                                    <td><span class="badge bg-success">✓ Успешно</span></td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <!-- Детальная информация об ошибках -->
+                            {% if summary.monitoring.failed %}
+                                <div class="mb-3">
+                                    <h6 class="text-danger">
+                                        <i class="bi bi-x-circle"></i> Ошибки отправки
+                                    </h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-danger">
+                                            <thead>
+                                                <tr>
+                                                    <th>Email</th>
+                                                    <th>Время попытки</th>
+                                                    <th>Ошибка</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for email in summary.monitoring.failed %}
+                                                <tr>
+                                                    <td>{{ email.email }}</td>
+                                                    <td>{{ email.timestamp }}</td>
+                                                    <td>
+                                                        <span class="badge bg-danger">✗ Ошибка</span>
+                                                        <small class="d-block text-muted">{{ email.error }}</small>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <!-- Процент успешности -->
+                            {% if summary.monitoring.total_sent > 0 or summary.monitoring.total_failed > 0 %}
+                                <div class="mt-3">
+                                    <h6>📈 Процент успешности</h6>
+                                    {% set total = summary.monitoring.total_sent + summary.monitoring.total_failed %}
+                                    {% set success_rate = (summary.monitoring.total_sent / total * 100) | round(1) %}
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar bg-success" role="progressbar" 
+                                             style="width: {{ success_rate }}%" 
+                                             aria-valuenow="{{ success_rate }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            {{ success_rate }}%
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        Успешно: {{ summary.monitoring.total_sent }} из {{ total }} 
+                                        ({{ success_rate }}%)
+                                    </small>
+                                </div>
+                            {% endif %}
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>

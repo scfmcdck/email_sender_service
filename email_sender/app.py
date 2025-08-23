@@ -58,6 +58,63 @@ def extract_emails_from_file(uploaded_file):
         print(f"Ошибка при чтении файла: {e}")
         return [], {"error": str(e)}
 
+def send_email_with_monitoring(smtp_server, smtp_port, smtp_username, password, sender_email, subject, message_body, recipients):
+    """
+    Отправляет email с мониторингом успешности для каждого получателя
+    """
+    monitoring_results = {
+        'successful': [],
+        'failed': [],
+        'total_sent': 0,
+        'total_failed': 0
+    }
+    
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_username, password)
+            
+            for recipient in recipients:
+                try:
+                    msg = EmailMessage()
+                    msg['From'] = sender_email
+                    msg['To'] = recipient
+                    msg['Subject'] = subject
+                    msg.set_content(message_body)
+                    
+                    server.send_message(msg)
+                    
+                    # Успешная отправка
+                    monitoring_results['successful'].append({
+                        'email': recipient,
+                        'timestamp': datetime.now(pytz.timezone("Europe/Moscow")).strftime("%d.%m.%Y %H:%M:%S"),
+                        'status': 'success'
+                    })
+                    monitoring_results['total_sent'] += 1
+                    
+                except Exception as e:
+                    # Ошибка отправки для конкретного получателя
+                    monitoring_results['failed'].append({
+                        'email': recipient,
+                        'timestamp': datetime.now(pytz.timezone("Europe/Moscow")).strftime("%d.%m.%Y %H:%M:%S"),
+                        'status': 'failed',
+                        'error': str(e)
+                    })
+                    monitoring_results['total_failed'] += 1
+                    
+    except Exception as e:
+        # Общая ошибка SMTP соединения
+        for recipient in recipients:
+            monitoring_results['failed'].append({
+                'email': recipient,
+                'timestamp': datetime.now(pytz.timezone("Europe/Moscow")).strftime("%d.%m.%Y %H:%M:%S"),
+                'status': 'failed',
+                'error': f"SMTP Error: {str(e)}"
+            })
+            monitoring_results['total_failed'] += 1
+    
+    return monitoring_results
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -81,18 +138,11 @@ def index():
             if not all_recipients:
                 raise ValueError("Не указано ни одного валидного email-адреса.")
 
-            msg = EmailMessage()
-            msg['From'] = sender_email
-            msg['Subject'] = subject
-            msg.set_content(message_body)
-
-            with smtplib.SMTP(smtp_server, smtp_port) as server:
-                server.starttls()
-                server.login(smtp_username, password)
-                for recipient in all_recipients:
-                    msg['To'] = recipient
-                    server.send_message(msg)
-                    del msg['To']
+            # Отправка с мониторингом
+            monitoring_results = send_email_with_monitoring(
+                smtp_server, smtp_port, smtp_username, password,
+                sender_email, subject, message_body, all_recipients
+            )
 
             # Получаем текущее время в часовом поясе Москвы
             moscow_time = datetime.now(pytz.timezone("Europe/Moscow")).strftime("%d.%m.%Y %H:%M:%S")
@@ -104,7 +154,8 @@ def index():
                 "valid_from_file": file_stats.get("valid", 0),
                 "duplicates_removed": file_stats.get("duplicates_removed", 0),
                 "final_total": len(all_recipients),
-                "timestamp": moscow_time  # ✅ московское время
+                "timestamp": moscow_time,  # ✅ московское время
+                "monitoring": monitoring_results  # ✅ добавлен мониторинг
             }
 
             return redirect(url_for("index", sent="1"))
